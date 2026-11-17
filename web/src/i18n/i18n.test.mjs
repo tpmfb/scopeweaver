@@ -130,7 +130,7 @@ test("every shipped scope label and planning example preserves the exact /24 CID
 test("SDK bridge guidance preserves runtime, credential and model boundaries in every shipped language", () => {
   for (const locale of LOCALES) {
     const catalog = catalogs[locale];
-    for (const version of ["2.1.4", "1.19.4", "Windows"]) {
+    for (const version of ["2.3.0", "1.19.4", "Windows"]) {
       assert.ok(catalog["providers.sdkHelp"].includes(version), `${locale}: runtime boundary ${version}`);
     }
     assert.ok(catalog["providers.sdkTokenHelp"].includes("SCOPEWEAVER_OPENCODE_TOKEN"), `${locale}: separate bridge credential`);

@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-**네이티브 OpenCode CLI·클라이언트·SDK 2.1.4**와 따로 검증한 **구형 SDK·CLI 1.19.4**를 연결하는 선택 기능입니다. ScopeWeaver가 대화 기록, 도구 실행, 승인, 범위 검사, 재시도와 압축을 계속 관리합니다. 브리지는 모델의 한 단계만 스트리밍하고 도구 요청을 수집합니다. ScopeWeaver 도구나 OpenCode 기본 도구를 직접 실행하지 않습니다. 기존 API·OpenCode Go 공급자는 브리지 없이 사용할 수 있습니다.
+**네이티브 OpenCode CLI·클라이언트·SDK 2.3.0**와 따로 검증한 **구형 SDK·CLI 1.19.4**를 연결하는 선택 기능입니다. ScopeWeaver가 대화 기록, 도구 실행, 승인, 범위 검사, 재시도와 압축을 계속 관리합니다. 브리지는 모델의 한 단계만 스트리밍하고 도구 요청을 수집합니다. ScopeWeaver 도구나 OpenCode 기본 도구를 직접 실행하지 않습니다. 기존 API·OpenCode Go 공급자는 브리지 없이 사용할 수 있습니다.
 
 ## 실행
 
@@ -76,7 +76,7 @@ native 모드는 완료·스트림 응답과 호스트 도구 기록 재생에�
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | 고정한 버전 조합 | 기능 응답 `runtime` |
 | --- | --- | --- |
-| `native`(기본값) | 공식 CLI·`@opencode/client`·SDK **2.1.4** | `native` |
+| `native`(기본값) | 공식 CLI·`@opencode/client`·SDK **2.3.0** | `native` |
 | `legacy` | `@opencode-ai/sdk/v2`·CLI **1.19.4** | `legacy` |
 
 구형 API를 선택하려면 시작 전에 `SCOPEWEAVER_OPENCODE_RUNTIME=legacy`를 지정합니다. 두 조합은 로컬 **macOS arm64**에서 확인했으며 CI는 Linux에서 실제 런타임 테스트를 실행하도록 구성되어 있습니다. 다른 SDK 버전은 추론 전에 거부합니다. 모든 버전·플랫폼의 호환성을 보장하지 않습니다.

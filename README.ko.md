@@ -118,7 +118,7 @@ PostgreSQL 데이터베이스 하나에는 ScopeWeaver 서버 프로세스를 �
 [제공자 설정과 지원 범위](docs/ko/llm-providers.md)를 확인하세요.
 클라우드 토큰 사용량은 [토큰 사용량 줄이기](docs/ko/llm-providers.md#토큰-사용량-줄이기)를 참고하세요.
 
-선택형 **OpenCode SDK 브리지** 프로필은 고정된 `native` CLI·클라이언트 **2.1.4**(기본값)와
+선택형 **OpenCode SDK 브리지** 프로필은 고정된 `native` CLI·클라이언트 **2.3.0**(기본값)와
 `legacy` SDK·CLI **1.19.4**, 별도 브리지 토큰, `providerID/modelID`를 지원합니다.
 호스트 도구와 승인은 ScopeWeaver의 Norma 런타임이 관리합니다. 레거시는 안전한 JSON 구조를 보존하며
 무해한 공백·이스케이프는 정규화될 수 있습니다. 원본 바이트는 보장하지 않으며 안전하지 않은 정수는 거부합니다.

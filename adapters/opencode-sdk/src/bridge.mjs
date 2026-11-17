@@ -69,7 +69,7 @@ const nativeVersionMatches=["@opencode/cli/package.json","@opencode/sdk","@openc
   try{
     let path=dirname(fileURLToPath(import.meta.resolve(id)));
     const name=id.split("/").slice(0,2).join("/");
-    while(path!==dirname(path)){try{const p=JSON.parse(readFileSync(join(path,"package.json"),"utf8"));if(p.name===name)return p.version==="2.1.4"}catch{}path=dirname(path)}
+    while(path!==dirname(path)){try{const p=JSON.parse(readFileSync(join(path,"package.json"),"utf8"));if(p.name===name)return p.version==="2.3.0"}catch{}path=dirname(path)}
     return false;
   }catch{return false}
 });
@@ -110,7 +110,7 @@ export function createBridge({token,providerConfig,timeout=0,runtime="native",wo
       try {
         authorize(req);if(closed)fail("canceled",503);
         const path=new URL(req.url).pathname;
-        if(req.method==="GET"&&path==="/v1/capabilities")return json({protocol:"scopeweaver-opencode-sdk",version:1,sdk_version:runtime==="native"?"2.1.4":"1.19.4",runtime,tool_execution:"capture-only",streaming:true});
+        if(req.method==="GET"&&path==="/v1/capabilities")return json({protocol:"scopeweaver-opencode-sdk",version:1,sdk_version:runtime==="native"?"2.3.0":"1.19.4",runtime,tool_execution:"capture-only",streaming:true});
         if(req.method==="DELETE"&&/^\/v1\/requests\/[A-Za-z0-9_-]{1,128}$/.test(path)){active.get(path.slice("/v1/requests/".length))?.abort();return json({aborted:true})}
         if(req.method==="GET"&&path==="/v1/models"){
           const {controller,dispose}=controllerFor(req);const key=Symbol();active.set(key,controller);

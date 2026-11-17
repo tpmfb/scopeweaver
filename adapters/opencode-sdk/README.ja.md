@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-任意で使用するループバック専用ブリッジです。固定した **OpenCode ネイティブ CLI／クライアント／SDK 2.1.4** と、別途テストした **旧 SDK／CLI 1.19.4** の組み合わせに対応します。対話、ツール実行、承認、スコープ検査、再試行、圧縮は ScopeWeaver が管理します。ブリッジはモデルの 1 ステップをストリーム配信してツール要求を収集し、ScopeWeaver のツールや OpenCode の組み込みツールを実行しません。従来の API／OpenCode Go プロバイダーはブリッジなしで利用できます。
+任意で使用するループバック専用ブリッジです。固定した **OpenCode ネイティブ CLI／クライアント／SDK 2.3.0** と、別途テストした **旧 SDK／CLI 1.19.4** の組み合わせに対応します。対話、ツール実行、承認、スコープ検査、再試行、圧縮は ScopeWeaver が管理します。ブリッジはモデルの 1 ステップをストリーム配信してツール要求を収集し、ScopeWeaver のツールや OpenCode の組み込みツールを実行しません。従来の API／OpenCode Go プロバイダーはブリッジなしで利用できます。
 
 ## 起動
 
@@ -76,7 +76,7 @@ CLI の公開設定ではシステム／MDM 設定探索を完全に無効化で
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | 固定した組み合わせ | 機能応答 `runtime` |
 | --- | --- | --- |
-| `native`（既定） | 公式 CLI、`@opencode/client`、SDK **2.1.4** | `native` |
+| `native`（既定） | 公式 CLI、`@opencode/client`、SDK **2.3.0** | `native` |
 | `legacy` | `@opencode-ai/sdk/v2`、CLI **1.19.4** | `legacy` |
 
 起動前に `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` を指定すると旧 API を選べます。過去に実際のランタイムをローカル検証した範囲は **macOS arm64** です。Linux CI に実ランタイムテストを設定していますが、ホステッド実行結果は未確認です。他の SDK バージョンは推論前に拒否します。任意のバージョン／プラットフォームの互換性は保証しません。

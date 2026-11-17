@@ -44,7 +44,7 @@ This separate backend supports two pinned runtimes through the same `opencode-sd
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | Pinned runtime | Supported input boundary |
 | --- | --- | --- |
-| `native` (default) | Official CLI and `@opencode/client` 2.1.4 | Preserves raw tool-argument JSON, including 64-bit integers, through responses and host history. Unsafe numeric values outside authoritative raw arguments are rejected. |
+| `native` (default) | Official CLI and `@opencode/client` 2.3.0 | Preserves raw tool-argument JSON, including 64-bit integers, through responses and host history. Unsafe numeric values outside authoritative raw arguments are rejected. |
 | `legacy` | SDK and CLI 1.19.4 | Structurally valid, safely representable JSON history and JavaScript-safe integers (absolute value no greater than 9,007,199,254,740,991). Benign whitespace and equivalent HTML/Unicode escapes may be normalized; original lexical bytes are not preserved. Unsafe integers and opaque/signed thinking history fail explicitly. Use `native` when lossless raw tool arguments are required. |
 
 `native` starts the genuine pinned CLI through `serve --stdio` and `run --server --session`; the official client handles discovery, event observation and interruption. Each call owns private temporary CLI home/config/data paths and database storage. Genuine native tool definitions and original implementations remain registered: native permissions are ASK, and a separate public `execute.before` guard denies every non-host tool before execution. Host capture requests return to Norma for execution and approvals. OpenCode's generated model/environment/tool context remains alongside the host's system instructions and history. See the adapter guide for the fail-closed unmanaged system/MDM configuration checks; those sources are not read or changed.
@@ -62,7 +62,7 @@ export SCOPEWEAVER_OPENCODE_TOKEN="$(openssl rand -hex 32)"
 bun run start
 ```
 
-Keep this token available for the profile's **Bridge token** field. The default runtime is `native` (SDK 2.1.4); set `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` before starting the bridge to select SDK 1.19.4. The listener defaults to `127.0.0.1:4097`. For explicit provider settings, use a dedicated JSON file through `SCOPEWEAVER_OPENCODE_PROVIDER_CONFIG`; follow the adapter guide's schema rather than pointing it at a saved user auth file.
+Keep this token available for the profile's **Bridge token** field. The default runtime is `native` (SDK 2.3.0); set `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` before starting the bridge to select SDK 1.19.4. The listener defaults to `127.0.0.1:4097`. For explicit provider settings, use a dedicated JSON file through `SCOPEWEAVER_OPENCODE_PROVIDER_CONFIG`; follow the adapter guide's schema rather than pointing it at a saved user auth file.
 
 `SCOPEWEAVER_OPENCODE_TIMEOUT_MS` accepts 0–86,400,000 ms; its default `0` leaves duration under host cancellation control. Request bodies are limited to **16 MiB** and oversized input fails explicitly. See the adapter guide for the remaining output and cleanup bounds.
 

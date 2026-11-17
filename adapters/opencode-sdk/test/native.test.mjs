@@ -98,7 +98,7 @@ describe("bridge boundary",()=>{
   });
 });
 
-describe("actual native 2.1.4 runtime",()=>{
+describe("actual native 2.3.0 runtime",()=>{
   test("model list is inference-free; exact system/history/settings and cache usage survive",async()=>{
     const f=await fixture();try{
       const models=await (await fetchBridge(f.bridge,"/v1/models")).json();expect(models.models).toEqual([{id:"fixture/model",name:"Fixture model"}]);expect(f.requests).toHaveLength(0);
@@ -176,7 +176,7 @@ describe("actual native 2.1.4 runtime",()=>{
     const f=await fixture("text","opencode");try{
       expect((await fetchBridge(f.bridge,"/v1/complete",request({model:"opencode/model",session_id:"host-session"}))).status).toBe(200);
       expect(f.headers[0]["x-opencode-session"]).not.toBe("host-session");expect(f.headers[0]["x-opencode-session"]).toStartWith("ses_");
-      expect(f.headers[0]["user-agent"]).toBe("opencode/latest/2.1.4/cli");expect(f.headers[0]["x-opencode-client"]).toBe("cli");
+      expect(f.headers[0]["user-agent"]).toBe("opencode/latest/2.3.0/cli");expect(f.headers[0]["x-opencode-client"]).toBe("cli");
     }finally{await f.close()}
   });
   test("64-bit tool IDs retain authoritative raw arguments in stream and complete",async()=>{

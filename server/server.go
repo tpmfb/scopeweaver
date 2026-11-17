@@ -317,8 +317,14 @@ func (s *Server) restoreTaskRuntimes() {
 	// only the active UI task left other non-queued tasks counted as concurrency
 	// occupants without live loops, which could permanently block the persistent
 	// FIFO. Paused loops remain idle; queued tasks are admitted below as slots allow.
+	// This engine starts with no paused state. LoadExisting skips tasks the Manager
+	// already holds, so restore pause for every listed task before Run; otherwise a
+	// persisted pause would not stop their planner rounds (Pause is idempotent).
 	for _, t := range m.List() {
 		lifecycle := t.lifecycleSnapshot()
+		if lifecycle.Paused {
+			s.engine.Pause(t.ID, agent.AbortPausedOnReload)
+		}
 		if !lifecycle.Queued && !isTerminalStatus(lifecycle.Status) {
 			s.engine.Run(s.ctx, t)
 		}

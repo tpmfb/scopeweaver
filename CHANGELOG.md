@@ -4,6 +4,25 @@ This is the translated upstream ARTEX history from baseline `160fe13`, preservin
 
 ## [Unreleased]
 
+### Paused tasks stay paused when the server is rebuilt (#94)
+
+#### Fixed
+- When a server was rebuilt on a task manager that already held its tasks, restoring task runtimes did not reapply a saved pause to those tasks before starting their loops. Paused tasks then ran a planner round immediately and again on every 600-second heartbeat. Every listed task that is paused is now paused before its loop starts. A normal restart builds a fresh manager and already restored the pause, so it behaves as before. See [#95](https://github.com/cskwork/scopeweaver/pull/95).
+
+### Zod advisory fully remediated in the OpenCode SDK bridge (#67)
+
+#### Security
+- The OpenCode SDK bridge now overrides `zod` to 4.6.7 for its whole dependency tree, so `bun audit` no longer reports GHSA-mrhx-c7xc-m3w5. This covers the `legacy` runtime's `@opencode-ai/plugin` 1.19.4 (which pinned 4.1.8) and `gitlab-ai-provider` 6.24.0 (which declares `zod ^3.25.76`). `gitlab-ai-provider` uses only `z.object`, `z.string`, `z.number`, `z.record` and `z.infer`, which zod 4.6.7 supports, including the v3-style one-argument `z.record`. Its declared zod 3 contract is overridden: with zod 4.6.7 it loads, validates its OAuth token schema and builds a model, but no GitLab Duo request has been tested.
+
+### OpenCode SDK bridge runtime 2.3.0 (#67)
+
+#### Security
+- The native OpenCode bridge runtime moves from CLI/client/SDK 2.1.4 to 2.3.0 (`effect` 4.1.0). Its `@opencode/core` now resolves the patched `zod` 4.6.7, so the default runtime's validation path is no longer affected by GHSA-mrhx-c7xc-m3w5. Issue #67 stays open: the legacy runtime's `@opencode-ai/plugin` 1.19.4 pins `zod` 4.1.8, and `gitlab-ai-provider` 6.24.0 still requires `zod ^3.25.76`, so `bun audit` still reports the advisory.
+
+#### Changed
+- The bridge and the server accept only native runtime 2.3.0 (legacy 1.19.4 is unchanged); a bridge still running 2.1.4 is reported as an unsupported runtime. Restart the bridge after updating.
+- Runtime 2.3.0 reports the bridge's own interruption of a captured host tool as an `unknown` failure carrying `CAPTURE_INTERRUPTED` instead of `aborted`; the bridge accepts both, and only after it interrupted the session itself.
+
 ### Windows PostgreSQL setup (#79)
 
 #### Fixed

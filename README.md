@@ -124,7 +124,7 @@ activate, or contact a provider. Coding Plan use is restricted to officially sup
 ScopeWeaver is not listed. See [provider setup and support limits](docs/llm-providers.md).
 To reduce cloud token use, see [Controlling token use](docs/llm-providers.md#controlling-token-use).
 
-Optional **OpenCode SDK bridge** profiles support pinned `native` CLI/client **2.1.4** (default) and
+Optional **OpenCode SDK bridge** profiles support pinned `native` CLI/client **2.3.0** (default) and
 `legacy` SDK/CLI **1.19.4**, with a separate bridge token and `providerID/modelID`. ScopeWeaver's
 Norma runtime keeps host tools and approvals. Legacy preserves safe JSON structure, allowing benign
 whitespace/escape normalization; it does not preserve original bytes and rejects unsafe integers. Both runtimes

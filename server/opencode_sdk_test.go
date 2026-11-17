@@ -19,7 +19,7 @@ import (
 	"github.com/Autumn-27/norma/llm"
 )
 
-const sdkCaps = `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.1.4","tool_execution":"capture-only","streaming":true}`
+const sdkCaps = `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.3.0","tool_execution":"capture-only","streaming":true}`
 
 func TestSDKErrorAPILocalizesOwnedBridgeDiagnostics(t *testing.T) {
 	t.Setenv("SCOPEWEAVER_CONFIG", filepath.Join(t.TempDir(), "missing.json"))

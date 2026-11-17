@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-Opt-in, loopback-only bridge for **native OpenCode CLI/client/SDK 2.1.4** and the separately tested **legacy SDK/CLI 1.19.4** pair. ScopeWeaver keeps its own conversation, tools, approvals, scope checks, retries, and compaction. The bridge streams a single model step and captures tool requests; it never runs ScopeWeaver tools or OpenCode's built-in tools. Existing API and OpenCode Go providers do not require this bridge.
+Opt-in, loopback-only bridge for **native OpenCode CLI/client/SDK 2.3.0** and the separately tested **legacy SDK/CLI 1.19.4** pair. ScopeWeaver keeps its own conversation, tools, approvals, scope checks, retries, and compaction. The bridge streams a single model step and captures tool requests; it never runs ScopeWeaver tools or OpenCode's built-in tools. Existing API and OpenCode Go providers do not require this bridge.
 
 ## Start
 
@@ -76,7 +76,7 @@ In native mode, raw tool-argument JSON, including 64-bit integers, is preserved 
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | Pinned pair | Capability `runtime` |
 | --- | --- | --- |
-| `native` (default) | official CLI, `@opencode/client`, and SDK **2.1.4** | `native` |
+| `native` (default) | official CLI, `@opencode/client`, and SDK **2.3.0** | `native` |
 | `legacy` | `@opencode-ai/sdk/v2` and CLI **1.19.4** | `legacy` |
 
 Set `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` before starting to choose the older API. Both pairs were tested locally on **macOS arm64**; CI is configured to run their actual-runtime fixtures on Linux. Other SDK versions are rejected before inference. This is not a universal cross-version or platform guarantee.

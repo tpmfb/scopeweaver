@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+### 서버를 다시 만들어도 일시정지된 작업 유지 (#94)
+
+#### 수정
+- 작업을 이미 들고 있는 작업 관리자 위에 서버를 다시 만들면, 작업 런타임을 복원할 때 저장된 일시정지를 해당 작업에 다시 적용하지 않고 루프를 시작했습니다. 그래서 일시정지된 작업이 곧바로, 그리고 600초 하트비트마다 planner를 실행했습니다. 이제 목록의 모든 일시정지 작업을 루프 시작 전에 일시정지합니다. 일반 재시작은 새 작업 관리자를 만들고 이미 일시정지를 복원했으므로 동작이 같습니다. [#95](https://github.com/cskwork/scopeweaver/pull/95)를 참고하세요.
+
+### OpenCode SDK 브리지의 Zod 권고 완전 해소 (#67)
+
+#### 보안
+- OpenCode SDK 브리지가 의존성 트리 전체에서 `zod`를 4.6.7로 강제하므로, `bun audit`이 더 이상 GHSA-mrhx-c7xc-m3w5를 보고하지 않습니다. `legacy` 런타임의 `@opencode-ai/plugin` 1.19.4(4.1.8 고정)와 `gitlab-ai-provider` 6.24.0(`zod ^3.25.76` 선언)도 포함됩니다. `gitlab-ai-provider`는 zod 4.6.7이 지원하는 `z.object`·`z.string`·`z.number`·`z.record`·`z.infer`만 사용하며, v3 방식의 1개 인자 `z.record`도 지원됩니다. 선언된 zod 3 계약은 강제로 덮어쓴 것입니다. zod 4.6.7에서 로드, OAuth 토큰 스키마 검증, 모델 생성은 확인했지만 실제 GitLab Duo 요청은 시험하지 않았습니다.
+
+### OpenCode SDK 브리지 런타임 2.3.0 (#67)
+
+#### 보안
+- native OpenCode 브리지 런타임을 CLI·클라이언트·SDK 2.1.4에서 2.3.0(`effect` 4.1.0)으로 올렸습니다. `@opencode/core`가 패치된 `zod` 4.6.7을 쓰므로 기본 런타임의 검증 경로는 더 이상 GHSA-mrhx-c7xc-m3w5의 영향을 받지 않습니다. 이슈 #67은 열어 둡니다. legacy 런타임의 `@opencode-ai/plugin` 1.19.4가 `zod` 4.1.8을 고정하고, `gitlab-ai-provider` 6.24.0이 여전히 `zod ^3.25.76`을 요구해 `bun audit`은 계속 이 권고를 보고합니다.
+
+#### 변경
+- 브리지와 서버는 native 런타임 2.3.0만 받습니다(legacy 1.19.4는 그대로입니다). 2.1.4로 실행 중인 브리지는 지원하지 않는 런타임으로 보고되므로, 업데이트 후 브리지를 다시 시작하세요.
+- 런타임 2.3.0은 브리지가 캡처한 호스트 도구를 직접 중단할 때 `aborted` 대신 `CAPTURE_INTERRUPTED`가 담긴 `unknown` 실패를 보냅니다. 브리지는 자신이 세션을 중단한 경우에만 두 형태를 모두 받아들입니다.
+
 ### Windows PostgreSQL 설정 (#79)
 
 #### 수정

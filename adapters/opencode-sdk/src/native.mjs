@@ -29,7 +29,7 @@ async function createHost(root, providerConfig, plugins=[], request) {
     selected.compatibility={...selected.compatibility,maxTokensField:selected.compatibility?.maxTokensField??"max_tokens"};
   }
   const content=JSON.stringify({providers,plugins:[],update:"disable",share:"disabled",snapshots:false,warming:false,compaction:{auto:false},permissions:rules,default_agent:"capture",agents:{capture:{mode:"primary",system:"",permissions:rules}}});
-  return OpenCode.create({app:{name:"sdk",version:"2.1.4",channel:"latest"},database:{path:":memory:"},models:{fetch:!providerConfig,snapshot:!providerConfig},config:{directory:paths.config,project:false,claude:false,content},fs:{filewatcher:false,fff:false},plugins}, {overrides:[Global.node.replace(Global.layerWith(paths)),Config.node.replace(Config.configured({global:false,system:false,project:false,claude:false,content}))]});
+  return OpenCode.create({app:{name:"sdk",version:"2.3.0",channel:"latest"},database:{path:":memory:"},models:{fetch:!providerConfig,snapshot:!providerConfig},config:{directory:paths.config,project:false,claude:false,content},fs:{filewatcher:false,fff:false},plugins}, {overrides:[Global.node.replace(Global.layerWith(paths)),Config.node.replace(Config.configured({global:false,system:false,project:false,claude:false,content}))]});
 }
 export async function discoverModels({root,providerConfig}) {
   let publicIDs;
@@ -80,6 +80,8 @@ export async function completeNative(request,{root,providerConfig,rawHistory={},
       if(event.code==="free_tier_restricted")freeTierEvidence=true;
     }
   };
+  // Runtime 2.3.0 reports the capture tool's own abort rejection as unknown/CAPTURE_INTERRUPTED; older runtimes report aborted.
+  const interruptedCapture=error=>error?.type==="aborted"||(error?.type==="unknown"&&error?.message==="CAPTURE_INTERRUPTED");
   const consume=e=>{
     const d=e.data;if(!session||d?.sessionID!==session.id)return;
     try {
@@ -110,7 +112,7 @@ export async function completeNative(request,{root,providerConfig,rawHistory={},
         if(rawChunks.has(d.id)&&rawChunks.get(d.id)!==d.text)fail("protocol_error");
         rawObject(d.text);call.raw=d.text;
       } else if(e.type==="session.tool.called") {if(d.executed!==false||!calls.has(d.id))fail("protocol_error");}
-      else if(e.type==="session.tool.failed") {if(!ownedInterrupt||d.error?.type!=="aborted")fail("protocol_error");}
+      else if(e.type==="session.tool.failed") {if(!ownedInterrupt||!interruptedCapture(d.error))fail("protocol_error");}
       else if(e.type==="session.step.streamed")streamed=true;
       else if(e.type==="session.step.ended"||e.type==="session.step.failed") {
         if(e.type.endsWith("failed")&&!ownedInterrupt)fail("sdk_failure");

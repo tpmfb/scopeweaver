@@ -126,7 +126,7 @@ func (s *logSinkT) SetDB(ctx context.Context, pg *db.DB, background ...*sync.Wai
 					if !ok || ctx.Err() != nil || writeCtx.Err() != nil {
 						return
 					}
-					id, err := pg.InsertLogContext(writeCtx, req.ll.Level, req.ll.Tag, req.ll.Text)
+					id, err := insertSinkLog(writeCtx, pg, req.ll)
 					if err != nil {
 						_, _ = os.Stderr.Write([]byte("[logsink] db write: " + err.Error() + "\n"))
 						continue
@@ -153,6 +153,31 @@ func (s *logSinkT) SetDB(ctx context.Context, pg *db.DB, background ...*sync.Wai
 			go writer()
 		}
 	})
+}
+
+// insertSinkLog keeps cancellation from leaving an autocommit INSERT behind.
+// pgx can return a canceled query before its asynchronous server cancellation
+// and connection cleanup finish. If a lock is released in that interval, an
+// autocommit INSERT can still persist after StopDB joined the writer. With an
+// explicit transaction, a canceled INSERT never reaches Commit; connection
+// cleanup rolls it back even if the server finishes executing it meanwhile.
+func insertSinkLog(ctx context.Context, pg *db.DB, line LogLine) (int64, error) {
+	tx, err := pg.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	var id int64
+	if err := tx.QueryRowContext(ctx,
+		"INSERT INTO server_logs(level,tag,text) VALUES($1,$2,$3) RETURNING id",
+		line.Level, line.Tag, line.Text,
+	).Scan(&id); err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 // StopDB detaches DB persistence for exactly pg and joins the writer, so the

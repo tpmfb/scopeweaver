@@ -37,15 +37,6 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Fatalf("timed out waiting for %s", what)
 }
 
-func serverLogsCount(t *testing.T, pg *db.DB) int {
-	t.Helper()
-	var n int
-	if err := pg.QueryRow("SELECT count(*) FROM server_logs").Scan(&n); err != nil {
-		t.Fatalf("count server_logs: %v", err)
-	}
-	return n
-}
-
 func serverLogsMarkerCount(t *testing.T, pg *db.DB, marker string) int {
 	t.Helper()
 	var n int
@@ -82,8 +73,8 @@ func TestStopDBNilSafeWithoutBinding(t *testing.T) {
 // Bounded stop, deterministically: the writer's INSERT is blocked on a table
 // lock we hold (observed via pg_stat_activity, so no timing guess). StopDB must
 // still COMPLETE — its context cancel bounds the stuck insert — and afterwards
-// no writer may outlive the stop: new lines reach the ring only, the row count
-// stays frozen, and closing pg is safe.
+// no canceled owned INSERT may persist after release, new lines reach the ring
+// only, and closing pg is safe. Other sinks may keep writing to the same table.
 func TestStopDBCompletesWhileInsertBlocked(t *testing.T) {
 	dsn := dbtest.DSN(t)
 	pg, err := db.Open(dsn)
@@ -96,13 +87,24 @@ func TestStopDBCompletesWhileInsertBlocked(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer watch.Close()
+	// A single connection identifies this sink's backend, rather than accepting
+	// another pool's lock waiter anywhere in the PostgreSQL cluster.
+	pg.SetMaxOpenConns(1)
+	var writerPID int
+	if err := pg.QueryRow("SELECT pg_backend_pid()").Scan(&writerPID); err != nil {
+		t.Fatal(err)
+	}
 
 	s := newTestSink()
 	s.SetDB(context.Background(), pg)
-	s.add(LogLine{Level: "info", Text: "before lock"})
-	waitFor(t, "initial insert", func() bool { return serverLogsCount(t, watch) >= 1 })
+	defer s.StopDB(pg)
+	marker := fmt.Sprintf("%s-%d", t.Name(), time.Now().UnixNano())
+	s.add(LogLine{Level: "info", Text: marker + "-initial"})
+	waitFor(t, "owned initial insert", func() bool {
+		return serverLogsMarkerCount(t, watch, marker+"-initial") == 1
+	})
 
-	tx, err := pg.Begin()
+	tx, err := watch.Begin()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,12 +114,13 @@ func TestStopDBCompletesWhileInsertBlocked(t *testing.T) {
 	if _, err := tx.Exec("LOCK TABLE server_logs IN ACCESS EXCLUSIVE MODE"); err != nil {
 		t.Fatal(err)
 	}
-	s.add(LogLine{Level: "info", Text: "blocked insert"})
+	s.add(LogLine{Level: "info", Text: marker + "-blocked"})
 	waitFor(t, "writer blocked on the held lock", func() bool {
-		var waiting int
+		var waiting bool
 		return watch.QueryRow(
-			`SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND query LIKE '%server_logs%'`,
-		).Scan(&waiting) == nil && waiting >= 1
+			`SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+			 AND pid=$1 AND wait_event_type='Lock' AND query LIKE 'INSERT INTO server_logs%')`, writerPID,
+		).Scan(&waiting) == nil && waiting
 	})
 
 	done := make(chan struct{})
@@ -139,15 +142,21 @@ func TestStopDBCompletesWhileInsertBlocked(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No writer outlives the stop: the ring keeps working, persistence is gone.
-	before := serverLogsCount(t, watch)
-	s.add(LogLine{Level: "info", Text: "after stop"})
+	// Join pgx's asynchronous backend cleanup as well before inspecting rows.
+	// An immediate count could otherwise beat the canceled server-side INSERT.
+	waitFor(t, "owned backend cleanup", func() bool {
+		var exists bool
+		return watch.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid=$1)", writerPID).Scan(&exists) == nil && !exists
+	})
+	// The ring keeps working, persistence is gone for this sink's own lines.
+	s.add(LogLine{Level: "info", Text: marker + "-after-stop"})
 	if lines, _ := s.recent(0, 10); len(lines) < 2 {
 		t.Fatalf("ring lost lines after stop: %d", len(lines))
 	}
-	waitFor(t, "ring settled", func() bool { return true })
-	if after := serverLogsCount(t, watch); after != before {
-		t.Fatalf("rows written after StopDB: before=%d after=%d", before, after)
+	for _, suffix := range []string{"-blocked", "-after-stop"} {
+		if n := serverLogsMarkerCount(t, watch, marker+suffix); n != 0 {
+			t.Errorf("owned %s log persisted after StopDB: %d", suffix, n)
+		}
 	}
 	s.StopDB(pg) // idempotent
 	if err := pg.Close(); err != nil {

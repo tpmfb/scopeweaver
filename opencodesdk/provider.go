@@ -270,7 +270,7 @@ func (p *Provider) Capabilities(ctx context.Context) (Capabilities, error) {
 	if err = decode(resp.Body, &c); err != nil {
 		return c, p.safeError(err)
 	}
-	supported := (c.Runtime == "native" && c.SDKVersion == "2.1.4") || (c.Runtime == "legacy" && c.SDKVersion == "1.19.4")
+	supported := (c.Runtime == "native" && c.SDKVersion == "2.3.0") || (c.Runtime == "legacy" && c.SDKVersion == "1.19.4")
 	if c.Protocol != "scopeweaver-opencode-sdk" || c.Version != 1 || c.ToolExecution != "capture-only" || !c.Streaming || !supported {
 		return c, locale.NewError("unsupported OpenCode SDK bridge protocol, runtime version or capture-only capabilities")
 	}

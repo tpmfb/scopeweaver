@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-Puente opcional limitado a loopback para **CLI/cliente/SDK nativo de OpenCode 2.1.4** y la pareja **SDK/CLI heredada 1.19.4**, probada por separado. ScopeWeaver conserva la conversación, ejecución de herramientas, aprobaciones, controles de alcance, reintentos y compactación. El puente transmite un solo paso del modelo y captura solicitudes de herramientas; no ejecuta herramientas de ScopeWeaver ni herramientas internas de OpenCode. Los proveedores API y OpenCode Go existentes funcionan sin este puente.
+Puente opcional limitado a loopback para **CLI/cliente/SDK nativo de OpenCode 2.3.0** y la pareja **SDK/CLI heredada 1.19.4**, probada por separado. ScopeWeaver conserva la conversación, ejecución de herramientas, aprobaciones, controles de alcance, reintentos y compactación. El puente transmite un solo paso del modelo y captura solicitudes de herramientas; no ejecuta herramientas de ScopeWeaver ni herramientas internas de OpenCode. Los proveedores API y OpenCode Go existentes funcionan sin este puente.
 
 ## Inicio
 
@@ -76,7 +76,7 @@ El modo nativo conserva el JSON original de argumentos, incluidos enteros de 64 
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | Pareja fijada | Capacidad `runtime` |
 | --- | --- | --- |
-| `native` (predeterminado) | CLI oficial, `@opencode/client` y SDK **2.1.4** | `native` |
+| `native` (predeterminado) | CLI oficial, `@opencode/client` y SDK **2.3.0** | `native` |
 | `legacy` | `@opencode-ai/sdk/v2` y CLI **1.19.4** | `legacy` |
 
 Define `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` antes de iniciar para usar la API antigua. La verificación local previa de ambos entornos reales cubrió **macOS arm64**. CI está configurada para pruebas reales en Linux, pero su resultado alojado sigue pendiente. Otras versiones SDK se rechazan antes de inferir; no se garantiza compatibilidad universal entre versiones y plataformas.

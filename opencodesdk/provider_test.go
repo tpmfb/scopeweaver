@@ -115,7 +115,7 @@ func TestBridgeErrorDiagnosticCatalogAndUnknownEvidence(t *testing.T) {
 	}
 }
 
-const capabilities = `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.1.4","tool_execution":"capture-only","streaming":true}`
+const capabilities = `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.3.0","tool_execution":"capture-only","streaming":true}`
 const completeFixture = `{"message":{"role":"assistant","content":[{"type":"text","text":"Ready"},{"type":"tool_use","id":"host-call","name":"host_read","input":{"id":9223372036854775807}}]},"stop_reason":"tool_use","usage":{"input_tokens":11,"output_tokens":7,"cache_read_tokens":3,"cache_write_tokens":2}}`
 const streamFixture = `{"type":"message_start"}
 {"type":"text_delta","text":"Ready"}
@@ -263,7 +263,7 @@ func TestCapabilitiesBeforeInferenceAndDynamicPolicy(t *testing.T) {
 		t.Fatal("policy violation reached bridge")
 	}
 	strict.Store(false)
-	for _, bad := range []string{strings.Replace(capabilities, "2.1.4", "2.1.5", 1), strings.Replace(capabilities, "capture-only", "execute", 1), strings.Replace(capabilities, `"version":1`, `"version":2`, 1), `{`} {
+	for _, bad := range []string{strings.Replace(capabilities, "2.3.0", "2.1.4", 1), strings.Replace(capabilities, "capture-only", "execute", 1), strings.Replace(capabilities, `"version":1`, `"version":2`, 1), `{`} {
 		capBody.Store(bad)
 		before = calls.Load()
 		if _, _, _, e := p.Complete(t.Context(), inputFixture()); e == nil {
@@ -411,9 +411,9 @@ func TestSupportedRuntimePairs(t *testing.T) {
 	for _, tc := range []struct {
 		runtime, version string
 		ok               bool
-	}{{"native", "2.1.4", true}, {"legacy", "1.19.4", true}, {"native", "1.19.4", false}, {"legacy", "2.1.4", false}, {"native2", "2.1.4", false}, {"legacy1", "1.19.4", false}} {
+	}{{"native", "2.3.0", true}, {"legacy", "1.19.4", true}, {"native", "1.19.4", false}, {"legacy", "2.3.0", false}, {"native2", "2.3.0", false}, {"legacy1", "1.19.4", false}} {
 		t.Run(tc.runtime+"/"+tc.version, func(t *testing.T) {
-			body := strings.Replace(strings.Replace(capabilities, `"runtime":"native"`, `"runtime":"`+tc.runtime+`"`, 1), `"sdk_version":"2.1.4"`, `"sdk_version":"`+tc.version+`"`, 1)
+			body := strings.Replace(strings.Replace(capabilities, `"runtime":"native"`, `"runtime":"`+tc.runtime+`"`, 1), `"sdk_version":"2.3.0"`, `"sdk_version":"`+tc.version+`"`, 1)
 			p := newFixture(t, func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path != "/v1/capabilities" {
 					t.Errorf("unexpected inference on %s", r.URL.Path)

@@ -45,7 +45,7 @@ func TestSDKConnectionHonorsConfiguredTokenLimit(t *testing.T) {
 						return
 					}
 					if r.URL.Path == "/v1/capabilities" {
-						fmt.Fprint(w, `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.1.4","tool_execution":"capture-only","streaming":true}`)
+						fmt.Fprint(w, `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.3.0","tool_execution":"capture-only","streaming":true}`)
 						return
 					}
 					if r.Method == http.MethodDelete {
@@ -158,7 +158,7 @@ func TestSDKQuotaClassificationUsesStructuredEvidence(t *testing.T) {
 			t.Run(fmt.Sprintf("%v/%s", stream, tc.name), func(t *testing.T) {
 				b := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.URL.Path == "/v1/capabilities" {
-						fmt.Fprint(w, `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.1.4","tool_execution":"capture-only","streaming":true}`)
+						fmt.Fprint(w, `{"protocol":"scopeweaver-opencode-sdk","version":1,"runtime":"native","sdk_version":"2.3.0","tool_execution":"capture-only","streaming":true}`)
 						return
 					}
 					if r.Method == "DELETE" {

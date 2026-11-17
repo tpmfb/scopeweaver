@@ -3408,7 +3408,7 @@ export const providers: Record<keyof typeof providersSource, string> = {
     "OpenCode Go のサブスクリプションゲートウェイ（https://opencode.ai/zen/go/v1、OpenAI 互換）です。推論強度 max、max_tokens として送信する出力上限 16,384 トークン、コンテキストウィンドウ 0（既定 200K）を使用します。ゲートウェイは x-opencode-session ヘッダーのないリクエストを拒否するため、このテンプレートが「セッションヘッダー」欄を設定します。OpenCode のサブスクリプションキー（opencode の OPENCODE_API_KEY）を使用します。このキーは opencode 独自のサブスクリプション規約に従うため、保存前に ScopeWeaver からの利用が認められることを確認してください。",
   opencodeSdk: "OpenCode SDK · ブリッジ",
   sdkGroup: "SDK ブリッジ",
-  sdkHelp: "ブリッジの実行環境は native CLI／クライアント 2.1.4（既定、ツール引数の原文を保持）または legacy SDK 1.19.4（安全な構造の JSON。元のバイト列は保持しません）です。どちらも Windows には対応していません。ホスト側のツール実行と承認は引き続き ScopeWeaver が管理します。",
+  sdkHelp: "ブリッジの実行環境は native CLI／クライアント 2.3.0（既定、ツール引数の原文を保持）または legacy SDK 1.19.4（安全な構造の JSON。元のバイト列は保持しません）です。どちらも Windows には対応していません。ホスト側のツール実行と承認は引き続き ScopeWeaver が管理します。",
   sdkSecurity: "ループバックのブリッジもクラウドプロバイダーを呼び出せるため、ローカル専用 LLM モードでは使用できません。無料モデルの ID は現在の利用可能性を示すもので、サブスクリプションの利用権や無制限の利用枠を保証しません。",
   sdkToken: "ブリッジトークン",
   sdkTokenPlaceholder: "ブリッジトークンは必須です",

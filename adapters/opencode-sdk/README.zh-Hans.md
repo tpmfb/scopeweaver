@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-Hans.md) · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-可选的仅限回环地址的桥接器，支持固定的 **OpenCode 原生 CLI／客户端／SDK 2.1.4**，以及单独测试的 **旧版 SDK／CLI 1.19.4**。ScopeWeaver 继续管理对话、工具执行、审批、范围检查、重试与压缩。桥接器只流式传送一次模型步骤并收集工具请求，不执行 ScopeWeaver 工具或 OpenCode 内置工具。现有 API 与 OpenCode Go 供应商无需此桥接器。
+可选的仅限回环地址的桥接器，支持固定的 **OpenCode 原生 CLI／客户端／SDK 2.3.0**，以及单独测试的 **旧版 SDK／CLI 1.19.4**。ScopeWeaver 继续管理对话、工具执行、审批、范围检查、重试与压缩。桥接器只流式传送一次模型步骤并收集工具请求，不执行 ScopeWeaver 工具或 OpenCode 内置工具。现有 API 与 OpenCode Go 供应商无需此桥接器。
 
 ## 启动
 
@@ -76,7 +76,7 @@ CLI 的公开设置不能完全关闭系统／MDM 配置发现。macOS 上存在
 
 | `SCOPEWEAVER_OPENCODE_RUNTIME` | 固定组合 | 能力响应 `runtime` |
 | --- | --- | --- |
-| `native`（默认） | 官方 CLI、`@opencode/client`、SDK **2.1.4** | `native` |
+| `native`（默认） | 官方 CLI、`@opencode/client`、SDK **2.3.0** | `native` |
 | `legacy` | `@opencode-ai/sdk/v2`、CLI **1.19.4** | `legacy` |
 
 启动前设置 `SCOPEWEAVER_OPENCODE_RUNTIME=legacy` 可选择旧 API。两个组合的先前本地实际运行验证范围为 **macOS arm64**；Linux CI 已配置实际运行测试，但托管运行结果尚待验证。其他 SDK 版本在推理前被拒绝，不保证任意版本或平台兼容。

@@ -184,14 +184,20 @@ func TestChatControlsE2E(t *testing.T) {
 		t.Fatal(err)
 	}
 	fixture := &chatBrowserFixture{}
+	artifacts := os.Getenv("SCOPEWEAVER_E2E_ARTIFACTS")
+	if artifacts == "" {
+		artifacts = filepath.Join("..", "dist", "chat-e2e")
+	}
+	artifacts, err = filepath.Abs(artifacts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.MkdirAll(artifacts, 0700); err != nil {
+		t.Fatal(err)
+	}
 	// Test cleanup runs after the existing deferred app/model/listener teardown.
 	// A missing final file (timeout, cancellation, write failure) is incomplete evidence.
 	t.Cleanup(func() {
-		dir, pathErr := filepath.Abs(filepath.Join("..", "dist", "chat-e2e"))
-		if pathErr != nil {
-			t.Errorf("diagnostic path: %v", pathErr)
-			return
-		}
 		suite := "standard"
 		if os.Getenv("CHAT_E2E_SUITE") == "draft" {
 			suite = "draft"
@@ -203,11 +209,7 @@ func TestChatControlsE2E(t *testing.T) {
 			t.Errorf("diagnostic marshal: %v", marshalErr)
 			return
 		}
-		if dirErr := os.MkdirAll(dir, 0700); dirErr != nil {
-			t.Errorf("diagnostic directory: %v", dirErr)
-			return
-		}
-		file := filepath.Join(dir, "fixture-ledger-"+suite+".json")
+		file := filepath.Join(artifacts, "fixture-ledger-"+suite+".json")
 		if writeErr := os.WriteFile(file, data, 0600); writeErr != nil {
 			t.Errorf("diagnostic write %s: %v", file, writeErr)
 			return
@@ -473,10 +475,6 @@ func TestChatControlsE2E(t *testing.T) {
 	defer cancel()
 	t.Logf("chat browser gate budget: %s (%d locales)", browserTimeout, len(locale.Languages()))
 	command := exec.CommandContext(ctx, "node", "../e2e/chat-controls-runner.mjs")
-	artifacts, _ := filepath.Abs(filepath.Join("..", "dist", "chat-e2e"))
-	if err = os.MkdirAll(artifacts, 0700); err != nil {
-		t.Fatal(err)
-	}
 	command.Env = append(os.Environ(), "SCOPEWEAVER_E2E_ARTIFACTS="+artifacts, "SCOPEWEAVER_E2E_URL="+listener.URL, "SCOPEWEAVER_E2E_FIXTURE="+fixtureToken)
 	output, err := command.CombinedOutput()
 	t.Log(string(output))

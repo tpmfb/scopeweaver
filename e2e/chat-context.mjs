@@ -24,11 +24,28 @@ export async function runChatContextChecks({base,token,fixture,step,check,openPa
   if(surface==="standalone"){const r=await api.post("/api/conversations",{data:{agent_key:"auto",title:"Context fixture"}});check(r.ok(),await r.text());const c=await r.json();path=`/api/conversations/${c.id}/controls`;url=`${base}/chat?c=${c.id}`}
   else{const r=await api.post("/api/tasks",{data:{description:"Context fixture",goal:"Keep fixture idle",seed_first_intent:false}});check(r.ok(),await r.text());const task=await r.json();check((await api.post(`/api/tasks/${task.id}/control`,{data:{action:"pause"}})).ok(),"pause failed");path=`/api/tasks/${task.id}/chat/controls?seg=0`;url=`${base}/function/tasks/detail?id=${task.id}`}
   const p=await openPage(locale,token);await p.setViewportSize({width,height:900});
+  // Widen the admitted-but-not-yet-rendered composer interval in the reported
+  // desktop/task case. The real controls response is delayed, not replaced; a
+  // native press spanning that render caught the old missing readiness wait.
+  const delayedComposer=caseName==="zh-Hant/1440/task";
+  if(delayedComposer){
+   let submitted=false,gated=false;const controlsPath=path.split("?")[0];
+   await p.route(candidate=>candidate.pathname===controlsPath||candidate.pathname===`${controlsPath}/inputs`,async route=>{
+    const request=route.request(),pathname=new URL(request.url()).pathname;
+    if(request.method()==="POST"&&pathname===`${controlsPath}/inputs`)submitted=true;
+    if(submitted&&!gated&&request.method()==="GET"&&pathname===controlsPath){gated=true;await new Promise(resolve=>setTimeout(resolve,500))}
+    await route.continue();
+   });
+  }
   try{await step(`[${locale}/${width}/${surface}] context visibility, capacity switch and manual compaction`,async()=>{
    await p.goto(url);const input=p.locator("textarea[data-chat-draft]").first();await input.waitFor();await p.locator("[data-chat-context-trigger]").waitFor();
    const calls=await fixture.calls({operation:"context-command",boundary:"before"});await input.fill("/context");await p.getByRole("button",{name:t.m0073,exact:true}).click();await p.locator("[data-chat-context-panel]").waitFor();await p.getByText(t.chatContextUnknown,{exact:true}).last().waitFor();check(await p.locator("[data-chat-compact]").isDisabled(),"unobserved context allows compact");check(await fixture.calls({operation:"context-command",boundary:"after"})===calls,"/context called the provider");await closeContext(p,t.chatContextClose);
    for(let i=0;i<5;i++){await input.fill(`context turn ${i}: `+(i===0?`${caseMarker} `:"")+"preserve detail ".repeat(120));if(i===0)await fixture.holdNext();await p.getByRole("button",{name:t.m0073,exact:true}).click();
-    if(i===0){await waitChatState(api,path,state=>!!state.active);await p.locator("[data-chat-context-trigger]").click();await p.locator("[data-chat-context-panel]").waitFor();if(process.env.CHAT_CONTEXT_MUTATION)await p.locator("[data-chat-compact]").evaluate(button=>button.disabled=false);check(await p.locator("[data-chat-compact]").isDisabled(),"busy Compact now is enabled");await closeContext(p,t.chatContextClose);await fixture.release()}
+    // Admission may be visible to the API before submit() finishes its controls
+    // reload and clears the composer. Clearing its multiline draft moves this
+    // trigger, so wait for that render before a native pointer click.
+    await p.waitForFunction(input=>input.value==="",await input.elementHandle());
+    if(i===0){await waitChatState(api,path,state=>!!state.active);await p.locator("[data-chat-context-trigger]").click(delayedComposer?{delay:800}:{});await p.locator("[data-chat-context-panel]").waitFor();if(process.env.CHAT_CONTEXT_MUTATION)await p.locator("[data-chat-compact]").evaluate(button=>button.disabled=false);check(await p.locator("[data-chat-compact]").isDisabled(),"busy Compact now is enabled");await closeContext(p,t.chatContextClose);await fixture.release()}
     await waitChatState(api,path,state=>!state.active&&state.latest_run_status==="completed");await p.getByRole("button",{name:t.chatEdit,exact:true}).nth(i).waitFor();
    }
    await p.locator("[data-chat-context-trigger]").click();await p.locator("[data-chat-context-panel]").waitFor();await p.getByText("fixture-64",{exact:true}).waitFor();await p.waitForFunction(()=>{const panel=document.querySelector("[data-chat-context-panel]");if(!panel)return false;const box=panel.getBoundingClientRect();return box.y>=0&&box.x>=0&&box.right<=innerWidth+1});const box=await p.locator("[data-chat-context-panel]").boundingBox();check(box&&box.y>=0&&box.x>=0&&box.x+box.width<=width+1,`context panel extends outside the viewport: ${JSON.stringify(box)}`);check(await p.getByLabel(t.chatContextKeep,{exact:true}).inputValue()==="2","default retention changed");
@@ -179,7 +196,7 @@ export async function runChatRuntimeChecks({base,token,fixture,step,check,openPa
   else{const response=await api.post("/api/tasks",{data:{description:"Steering fixture",goal:"Keep idle",seed_first_intent:false}});check(response.ok(),await response.text());const task=await response.json();check((await api.post(`/api/tasks/${task.id}/control`,{data:{action:"pause"}})).ok(),"fixture pause failed");const segment=await api.post(`/api/exploration/main-session/new?task=${task.id}`);check(segment.ok(),await segment.text());const {seq}=await segment.json();path=`/api/tasks/${task.id}/chat/controls?seg=${seq}`;otherPath=`/api/tasks/${task.id}/chat/controls?seg=0`;url=`${base}/function/tasks/detail?id=${task.id}`}
   const p=await openPage(locale,token);await p.setViewportSize({width,height:900});
   try{await step(`[${locale}/${width}/${surface}] running tool steering and shared execution gate`,async()=>{
-   await p.goto(url);const input=p.locator("textarea[data-chat-draft]").first();await input.fill("steer-fixture-trigger");await p.getByRole("button",{name:t.m0073,exact:true}).click();await waitChatState(api,path,state=>!!state.active);
+   await p.goto(url);const input=p.locator("textarea[data-chat-draft]").first();await p.locator("[data-chat-queue]").waitFor();await input.fill("steer-fixture-trigger");await p.getByRole("button",{name:t.m0073,exact:true}).click();await waitChatState(api,path,state=>!!state.active);
    const deadline=Date.now()+15000;while(!(await fixture.stats()).tool_started){check(Date.now()<deadline,"fixture tool did not start");await new Promise(resolve=>setTimeout(resolve,50))}
    if(otherPath){const rejected=await api.post(actionURL(otherPath,"inputs"),{data:{client_request_id:crypto.randomUUID(),mode:"send",message:"must not overlap"}});check(rejected.status()===409,"another task segment entered the active gate");const queued=await api.post(actionURL(otherPath,"inputs"),{data:{client_request_id:crypto.randomUUID(),mode:"queue",message:"queued other segment"}});check(queued.ok(),await queued.text());const state=await (await api.get(path)).json();check(state.inputs.some(item=>item.session.main_seg===0&&item.status==="queued"),"task queue did not share segment inputs")}
    await input.fill("focus correction");await p.getByRole("button",{name:t.chatSteer,exact:true}).click();await p.locator("[data-steer-input]").filter({hasText:"focus correction"}).waitFor();await fixture.release();await waitChatState(api,path,state=>!state.active&&state.latest_run_status==="completed"&&!state.inputs.some(item=>item.status==="queued"));check((await fixture.stats()).marker_calls===0,"steer did not block the next tool");check((await fixture.requests()).some(text=>text.includes("focus correction")),"steer missing from next request");await p.getByText("Correction accepted",{exact:true}).waitFor();

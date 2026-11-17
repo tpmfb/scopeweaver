@@ -26,7 +26,7 @@ async function binaryPath(){
   for(const name of names){
     try{
       const file=require.resolve(`${name}/package.json`),metadata=JSON.parse(await readFile(file,"utf8"));
-      if(metadata.version!=="2.1.4")continue;
+      if(metadata.version!=="2.3.0")continue;
       const binary=join(dirname(file),"bin",process.platform==="win32"?"opencode.exe":"opencode");
       const valid=await new Promise(resolve=>{
         const child=spawn(binary,["--version"],{stdio:"ignore",windowsHide:true});
@@ -119,7 +119,7 @@ export async function createNativeCLI({root,providerConfig,request,history,tools
       server.once("error",()=>done(new BridgeError("sdk_failure",502)));server.once("exit",()=>done(new BridgeError(signal.aborted?"canceled":"sdk_failure",502)));
     });
     client=OpenCode.make({baseUrl:url,headers:{Authorization:`Basic ${Buffer.from(`opencode:${password}`).toString("base64")}`}});
-    if((await client.server.info()).version!=="2.1.4")fail("unsupported_runtime");
+    if((await client.server.info()).version!=="2.3.0")fail("unsupported_runtime");
     return {...client,directory:paths.work,setRequest,close,session:{...client.session,async prompt({sessionID}){
       activeSession=sessionID;
       runner=start(["run","--server",url,"--session",sessionID,"--model",request.model,"--agent","capture","--format","json"]);

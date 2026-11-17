@@ -3311,7 +3311,7 @@ export const providers: Record<keyof typeof providersSource, string> = {
     "OpenCode Go 订阅网关（https://opencode.ai/zen/go/v1，OpenAI 兼容）。推理强度 max，输出上限 16,384 token（以 max_tokens 发送），上下文窗口 0（默认 200K）。网关会拒绝缺少 x-opencode-session 标头的请求，因此该模板会自动填写“会话标头”字段。使用你的 OpenCode 订阅密钥（opencode 中的 OPENCODE_API_KEY）。该密钥受 opencode 订阅条款约束，保存前请确认允许在 ScopeWeaver 中使用。",
   opencodeSdk: "OpenCode SDK · 桥接服务",
   sdkGroup: "SDK 桥接服务",
-  sdkHelp: "桥接运行时：native CLI/客户端 2.1.4（默认，保留原始工具参数）或 legacy SDK 1.19.4（安全的结构化 JSON，不保留原始字节）。两者均不支持 Windows。主机工具执行和审批仍由 ScopeWeaver 管理。",
+  sdkHelp: "桥接运行时：native CLI/客户端 2.3.0（默认，保留原始工具参数）或 legacy SDK 1.19.4（安全的结构化 JSON，不保留原始字节）。两者均不支持 Windows。主机工具执行和审批仍由 ScopeWeaver 管理。",
   sdkSecurity: "回环桥接服务仍可能调用云端提供商，因此不能用于仅限本地 LLM 模式。免费模型 ID 只表示当前可用性，不代表订阅使用权或无限使用额度。",
   sdkToken: "桥接令牌",
   sdkTokenPlaceholder: "必填桥接令牌",
