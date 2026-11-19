@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { applyLLMProfilePreset, canReuseSDKBridgeToken, getLLMProfilePreset, isCloudEconomyPreset, isOllamaPreset, selectInstalledOllamaModel, type LLMProfilePresetId } from "@/lib/llm-profile-presets";
+import { applyLLMProfilePreset, canReuseSDKBridgeToken, crossesCheaperInferenceBoundary, getLLMProfilePreset, isCloudEconomyPreset, isOllamaPreset, requiresExplicitGatewayKey, selectInstalledOllamaModel, type LLMProfilePresetId } from "@/lib/llm-profile-presets";
 import { api } from "@/lib/api";
 import { pullCommand } from "@/lib/ollama-pull";
 import type { LLMModelDetail, LLMPoolMember, LLMPoolStatus, LLMProfile, LLMRetryOverride, LLMTestResult } from "@/lib/types";
@@ -74,6 +74,7 @@ const CLOUD_PRESETS = [
   { id: "kimi", key: "providers.kimi", help: "providers.kimiHelp" },
   { id: "openrouter", key: "providers.openrouter", help: "providers.openrouterHelp" },
   { id: "opencode-go", key: "providers.opencodeGo", help: "providers.opencodeGoHelp" },
+  { id: "cheaper-inference", key: "providers.cheaperInference", help: "providers.cheaperInferenceHelp" },
 ] as const;
 const OLLAMA_PRESETS = [
   { id: "ollama-host", key: "providers.ollamaHost", help: "providers.ollamaHostHelp" },
@@ -425,7 +426,8 @@ function ProfileSheet({
   function applyPreset(id: string) {
     if (!isNew) return;
     invalidateModels();
-    const next = applyLLMProfilePreset({ name, format, api_key: apiKey, proxy, session_header_key: sessionHeaderKey }, id);
+    // The current base URL lets the helper drop a key that would cross the Cheaper Inference gateway boundary.
+    const next = applyLLMProfilePreset({ name, format, base_url: baseUrl, api_key: apiKey, proxy, session_header_key: sessionHeaderKey }, id);
     setPreset(id as LLMProfilePresetId);
     setApiKey(next.api_key);
     setFormat(next.format);
@@ -457,8 +459,18 @@ function ProfileSheet({
   const detailOf = (m: string) => modelDetails.find((d) => (d.name ?? d.model) === m || d.model === m);
   // Warn only for explicit metadata: the model list or a native test reported capabilities without tools.
   const isSDK = format === "opencode-sdk";
+  const storedBaseUrl = profile?.base_url ?? "";
   const retainedKeyHint = isSDK || profile?.format === "opencode-sdk"
-    ? (canReuseSDKBridgeToken(profile, format, baseUrl) ? keyHint : "") : keyHint;
+    ? (canReuseSDKBridgeToken(profile, format, baseUrl) ? keyHint : "")
+    : crossesCheaperInferenceBoundary(storedBaseUrl, baseUrl) ? "" : keyHint;
+  // A blank key would let the server fall back to a stored or active key for another destination.
+  // Native Ollama and the SDK bridge keep their own credential isolation.
+  function gatewayKeyMissing(target: { format: string; baseUrl: string; apiKey: string } = { format, baseUrl, apiKey }) {
+    if (target.format === "ollama" || target.format === "opencode-sdk") return false;
+    if (!requiresExplicitGatewayKey(storedBaseUrl, target.baseUrl, target.apiKey)) return false;
+    toast.error(swt("interface.m1335"));
+    return true;
+  }
   const keyPlaceholder = isSDK ? swt("providers.sdkTokenPlaceholder") : format === "ollama" ? swt("providers.keyOptional") : "sk-…";
   const pull = diag && !diag.ok ? pullCommand(diag.error ?? "", model) : "";
   const testedModel = diag?.ok && diag.model === model.trim() ? diag : undefined;
@@ -501,6 +513,7 @@ function ProfileSheet({
     target = { format, baseUrl, apiKey, proxy },
     selectDefault = false,
   ) {
+    if (gatewayKeyMissing(target)) return;
     const request = ++modelsRequest.current;
     setLoadingModels(true);
     setModelsError("");
@@ -534,7 +547,7 @@ function ProfileSheet({
   }
 
   async function testConnection() {
-    if (testing) return;
+    if (testing || gatewayKeyMissing()) return;
     setTesting(true);
     setDiag(null);
     try {
@@ -555,6 +568,7 @@ function ProfileSheet({
           context_window_k: Number(cw) || 0,
           keep_alive: keepAlive.trim(),
           max_tokens: Math.max(0, Number(maxTokens) || 0),
+          max_tokens_field: format === "openai" ? toStore(maxTokensField) : undefined,
           llm_max_concurrent: Math.max(0, Number(maxConcurrent) || 0),
         },
       );
@@ -577,7 +591,7 @@ function ProfileSheet({
       toast.error(swt("interface.m1379"));
       return;
     }
-    if (saving) return;
+    if (saving || gatewayKeyMissing()) return;
     setSaving(true);
     try {
       const { id } = await api.saveLLMProfile({
@@ -819,7 +833,7 @@ function ProfileSheet({
               className="font-mono"
               placeholder={isSDK ? "http://127.0.0.1:4097" : "https://api.openai.com/v1"}
               value={baseUrl}
-              onChange={(e) => { invalidateModels(); if (isSDK) setApiKey(""); setBaseUrl(e.target.value); }}
+              onChange={(e) => { invalidateModels(); if (isSDK || crossesCheaperInferenceBoundary(baseUrl, e.target.value)) setApiKey(""); setBaseUrl(e.target.value); }}
             />
           </div>
 

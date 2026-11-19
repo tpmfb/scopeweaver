@@ -23,6 +23,7 @@ import (
 	"github.com/Autumn-27/artex/agent"
 	"github.com/Autumn-27/artex/chatstate"
 	"github.com/Autumn-27/artex/db"
+	"github.com/Autumn-27/artex/llmnet"
 	"github.com/Autumn-27/artex/llmpool"
 	"github.com/Autumn-27/artex/llmrec"
 	"github.com/Autumn-27/artex/locale"
@@ -1368,7 +1369,15 @@ func (s *Server) getLLM(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// setLLM configures the LLM at runtime. A blank api_key keeps the existing key.
+// profileCredentialCompatible applies the endpoint scope of a stored credential.
+func profileCredentialCompatible(cfg agent.Config, storedFormat, storedURL string) bool {
+	if cfg.Provider() == opencodesdk.Format || storedFormat == opencodesdk.Format {
+		return cfg.Provider() == opencodesdk.Format && storedFormat == opencodesdk.Format && opencodesdk.SameEndpoint(cfg.BaseURL, storedURL)
+	}
+	return !llmnet.CrossesCheaperInferenceOrigin(storedURL, cfg.BaseURL)
+}
+
+// setLLM configures the LLM at runtime. A blank api_key keeps a compatible active key.
 func (s *Server) setLLM(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		KeepAlive       string  `json:"keep_alive"`
@@ -1403,11 +1412,7 @@ func (s *Server) setLLM(w http.ResponseWriter, r *http.Request) {
 	if cfg.APIKey == "" && !cfg.Ready() {
 		s.cfgMu.Lock()
 		active := s.llmCfg
-		if cfg.Provider() == opencodesdk.Format {
-			if sdkCredentialCompatible(cfg, active.Provider(), active.BaseURL) {
-				cfg.APIKey = active.APIKey
-			}
-		} else if active.Provider() != opencodesdk.Format {
+		if profileCredentialCompatible(cfg, active.Provider(), active.BaseURL) {
 			cfg.APIKey = active.APIKey
 		}
 		s.cfgMu.Unlock()
@@ -1443,20 +1448,21 @@ func (s *Server) setLLM(w http.ResponseWriter, r *http.Request) {
 // testLLM makes a real minimal completion to verify the config works.
 func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		KeepAlive        string `json:"keep_alive"`
-		MaxConcurrent    int    `json:"llm_max_concurrent"`
-		ContextWindowK   int    `json:"context_window_k"`
-		MaxTokens        int    `json:"max_tokens"`
-		Provider         string `json:"provider"`
-		Model            string `json:"model"`
-		BaseURL          string `json:"base_url"`
-		Proxy            string `json:"proxy"`
-		APIKey           string `json:"api_key"`
-		ThinkingType     string `json:"thinking_type"`
-		ReasoningEffort  string `json:"reasoning_effort"`
-		ProfileID        *int64 `json:"profile_id"`         // Existing profile under test; an empty api_key uses its stored key.
-		Streaming        *bool  `json:"streaming"`          // Omitted means streaming, matching profile-save defaults.
-		SessionHeaderKey string `json:"session_header_key"` // Optional custom session header, also sent during testing with a fresh random session ID.
+		KeepAlive        string  `json:"keep_alive"`
+		MaxConcurrent    int     `json:"llm_max_concurrent"`
+		ContextWindowK   int     `json:"context_window_k"`
+		MaxTokens        int     `json:"max_tokens"`
+		MaxTokensField   *string `json:"max_tokens_field"`
+		Provider         string  `json:"provider"`
+		Model            string  `json:"model"`
+		BaseURL          string  `json:"base_url"`
+		Proxy            string  `json:"proxy"`
+		APIKey           string  `json:"api_key"`
+		ThinkingType     string  `json:"thinking_type"`
+		ReasoningEffort  string  `json:"reasoning_effort"`
+		ProfileID        *int64  `json:"profile_id"`         // Existing profile under test; an empty api_key uses its stored key.
+		Streaming        *bool   `json:"streaming"`          // Omitted means streaming, matching profile-save defaults.
+		SessionHeaderKey string  `json:"session_header_key"` // Optional custom session header, also sent during testing with a fresh random session ID.
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, 400, err)
@@ -1485,9 +1491,10 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 	// API-key precedence: submitted form, specified profile's stored key, then global configuration.
 	// Stored keys never return to the browser; testing an existing profile may require reading its key from DB.
 	// Likewise, fall back to the stored custom session-header name when omitted by the form.
+	maxTokensField := req.MaxTokensField
 	if req.ProfileID != nil {
 		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
-			if cfg.APIKey == "" && (cfg.Provider() != "ollama" || p.Format == "ollama") && sdkCredentialCompatible(cfg, p.Format, p.BaseURL) {
+			if cfg.APIKey == "" && (cfg.Provider() != "ollama" || p.Format == "ollama") && profileCredentialCompatible(cfg, p.Format, p.BaseURL) {
 				cfg.APIKey = p.APIKey
 			}
 			if cfg.SessionHeaderKey == "" {
@@ -1502,7 +1509,16 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 			if req.MaxTokens == 0 {
 				cfg.MaxTokens = p.MaxTokens
 			}
+			if maxTokensField == nil && cfg.Format == llm.FormatOpenAI && p.Format == "openai" {
+				saved := agent.ConfigFrom(p.Format, p.Model, p.BaseURL, "", "")
+				if cfg.BaseURL == saved.BaseURL && cfg.Model == saved.Model {
+					maxTokensField = &p.MaxTokensField
+				}
+			}
 		}
+	}
+	if cfg.Format == llm.FormatOpenAI && maxTokensField != nil && *maxTokensField == llm.MaxTokensFieldCompletion {
+		cfg.MaxTokensField = llm.MaxTokensFieldCompletion
 	}
 	// Request and saved-profile headers take precedence over provider defaults.
 	if cfg.SessionHeaderKey == "" {
@@ -1516,7 +1532,7 @@ func (s *Server) testLLM(w http.ResponseWriter, r *http.Request) {
 		// Reuse local gateway credentials only for the same format and transport target.
 		// Other local endpoints and native Ollama remain deliberately keyless.
 		sameGateway := cfg.Provider() != "ollama" && cfg.Format == active.Format && cfg.BaseURL == active.BaseURL && cfg.Proxy == active.Proxy
-		if (cfg.Provider() == opencodesdk.Format && sdkCredentialCompatible(cfg, active.Provider(), active.BaseURL)) || (cfg.Provider() != opencodesdk.Format && active.Provider() != opencodesdk.Format && (!cfg.Ready() || sameGateway)) {
+		if profileCredentialCompatible(cfg, active.Provider(), active.BaseURL) && (cfg.Provider() == opencodesdk.Format || sameGateway || !cfg.Ready()) {
 			cfg.APIKey = active.APIKey
 		}
 	}

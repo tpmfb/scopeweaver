@@ -1866,6 +1866,10 @@ func (s *Server) pgSaveProfile(w http.ResponseWriter, r *http.Request) {
 		p.MaxTokensField = ""
 	}
 	id, err := pg.SaveProfile(&p)
+	if errors.Is(err, db.ErrActiveLLMProfileKeyRequired) {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
 	if err != nil {
 		writeError(w, 500, err)
 		return
@@ -2050,7 +2054,7 @@ func (s *Server) pgListModels(w http.ResponseWriter, r *http.Request) {
 	apiKey := strings.TrimSpace(req.APIKey)
 	if apiKey == "" && req.ProfileID != nil {
 		if p, err := s.m.pg.ProfileByID(*req.ProfileID); err == nil && p != nil {
-			if (req.Provider != "ollama" || p.Format == "ollama") && sdkCredentialCompatible(agent.ConfigFrom(req.Provider, "", req.BaseURL, "", req.Proxy), p.Format, p.BaseURL) {
+			if (req.Provider != "ollama" || p.Format == "ollama") && profileCredentialCompatible(agent.ConfigFrom(req.Provider, "", req.BaseURL, "", req.Proxy), p.Format, p.BaseURL) {
 				apiKey = p.APIKey
 			}
 		}

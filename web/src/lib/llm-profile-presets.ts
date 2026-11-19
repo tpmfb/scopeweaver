@@ -14,6 +14,7 @@ export const LLM_PROFILE_PRESET_IDS = [
   "kimi",
   "openrouter",
   "opencode-go",
+  "cheaper-inference",
   "opencode-sdk",
   "ollama-host",
   "ollama-docker-host",
@@ -36,7 +37,8 @@ export interface ZaiPresetFields {
 
 // Opt-in economy defaults: low effort and a 16384-token output cap. context_window_k 0 keeps
 // the 200K compaction default. Empty thinking/effort values omit the request field.
-// The opencode-go gateway template deliberately selects effort max at the user's request;
+// The opencode-go gateway template deliberately selects effort max at the user's request,
+// and the cheaper-inference gateway template omits effort so the model default applies;
 // every other cloud template keeps the measured economy low default.
 export interface CloudPresetFields {
   format: "openai" | "anthropic" | "openai-responses";
@@ -111,6 +113,11 @@ const CLOUD_TARGETS: Record<string, CloudTarget> = {
   // The gateway rejects requests without x-opencode-session (HTTP 400 MissingSessionID), so the
   // template fills the required session header.
   "opencode-go": { format: "openai", base_url: "https://opencode.ai/zen/go/v1", model: "glm-5.3-flash", thinking_type: "", reasoning_effort: "max", max_tokens_field: "", session_header_key: "x-opencode-session" },
+  // Cheaper Inference (OpenAI-compatible gateway) at https://api.cheaperinference.com/v1. The model id
+  // and its limits (400K context, 128K output) were checked in the public list at
+  // https://api.cheaperinference.com/public/models on 2026-11-05. GPT-5.4 models take the output
+  // limit as max_completion_tokens; effort is omitted so the model default applies.
+  "cheaper-inference": { format: "openai", base_url: "https://api.cheaperinference.com/v1", model: "gpt-5.4-mini", thinking_type: "", reasoning_effort: "", max_tokens_field: "max_completion_tokens" },
 };
 
 export function isCloudEconomyPreset(id: string): boolean {
@@ -164,13 +171,50 @@ export function getLLMProfilePreset(id: string): Readonly<LLMProfilePresetFields
   };
 }
 
+const CHEAPER_INFERENCE_HOST = "api.cheaperinference.com";
+
+// Origin of an http(s) base URL, or "" when it cannot be parsed. Trailing host dots are ignored.
+function endpointOrigin(baseUrl: string): { host: string; origin: string } {
+  try {
+    const url = new URL(baseUrl.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return { host: "", origin: "" };
+    const host = url.hostname.replace(/\.+$/, "");
+    return { host, origin: `${url.protocol}//${host}${url.port ? `:${url.port}` : ""}` };
+  } catch {
+    return { host: "", origin: "" };
+  }
+}
+
+// An unsaved or stored key must not follow a destination change into or out of the
+// Cheaper Inference gateway. Other provider switches keep their existing behavior, and a
+// change that keeps the same origin (for example only the path) keeps the key.
+export function crossesCheaperInferenceBoundary(previousBaseUrl: string, nextBaseUrl: string): boolean {
+  const previous = endpointOrigin(previousBaseUrl);
+  const next = endpointOrigin(nextBaseUrl);
+  const touchesGateway = previous.host === CHEAPER_INFERENCE_HOST || next.host === CHEAPER_INFERENCE_HOST;
+  return touchesGateway && previous.origin !== next.origin;
+}
+
+// With a blank key field the server falls back to a stored or active key. Require an explicitly
+// entered key when the target crosses the gateway boundary relative to the stored base URL
+// ("" for a new profile), so a fallback key never reaches a different destination.
+export function requiresExplicitGatewayKey(storedBaseUrl: string, baseUrl: string, apiKey: string): boolean {
+  return apiKey.trim() === "" && crossesCheaperInferenceBoundary(storedBaseUrl, baseUrl);
+}
+
 // Fields not defined by a template survive unchanged.
-// Cloud templates keep entered credentials; Ollama and SDK templates clear them.
+// Cloud templates keep entered credentials unless the destination crosses the Cheaper Inference
+// gateway boundary (the draft's base_url is the previous destination; a missing one counts as
+// unknown); Ollama and SDK templates clear them.
 // The SDK bridge also clears unsupported proxy/session headers and enables native streaming.
 // The original draft is not mutated, and no request or persistence occurs here.
 export function applyLLMProfilePreset<T extends object>(draft: T, id: string): T & LLMProfilePresetFields {
   const preset = getLLMProfilePreset(id);
   if ("format" in draft && draft.format === "opencode-sdk" && preset.format !== "opencode-sdk") {
+    return { ...draft, ...preset, api_key: "" };
+  }
+  const previousBaseUrl = "base_url" in draft && typeof draft.base_url === "string" ? draft.base_url : "";
+  if ("api_key" in draft && crossesCheaperInferenceBoundary(previousBaseUrl, preset.base_url)) {
     return { ...draft, ...preset, api_key: "" };
   }
   return { ...draft, ...preset };

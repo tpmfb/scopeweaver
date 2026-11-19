@@ -126,6 +126,26 @@ SCOPEWEAVER_LLM_MODEL=glm-5.3-flash
 
 `SCOPEWEAVER_LLM_PROVIDER=opencode-go` 解析为 OpenAI Chat Completions 传输格式；未设基础 URL 与模型时采上表默认值。
 
+<a id="cheaper-inference-openai-compatible-gateway"></a>
+
+## Cheaper Inference（OpenAI 兼容网关）
+
+开启「LLM → 新增 → 配置模板」，选择「Cheaper Inference · gpt-5.4-mini」。
+
+| 字段 | 值 |
+| --- | --- |
+| 格式 | OpenAI Chat Completions |
+| 基础 URL | `https://api.cheaperinference.com/v1` |
+| 模型 | `gpt-5.4-mini` |
+| 思考 | 省略（模型默认） |
+| 推理强度 | 省略（模型默认） |
+| 上下文视窗（K） | `0`（默认 200K） |
+| 输出上限 | `16384`，以 `max_completion_tokens` 传送 |
+
+Cheaper Inference 是兼容 OpenAI 的 LLM 网关；一个 API 密钥即可使用多家实验室的模型。模型 ID 及其上限（上下文 400K、输出 128K）于 2026-11-05 在公开模型清单 `https://api.cheaperinference.com/public/models` 中检查。GPT-5.4 模型以 `max_completion_tokens` 接收输出上限；模板省略推理强度，沿用模型默认值。「加载模型」读取网关的 `/v1/models` 清单，需要密钥；模型栏仍可输入 `deepseek-v4-flash`、`claude-sonnet-5` 等其他 ID。
+
+**凭证：** 在 https://cheaperinference.com 创建密钥（文档：https://cheaperinference.com/docs）。选择此模板，或将「基础 URL」改为网关或从网关改为其他地址时，会清除表单中已有的密钥，确保其他端点的密钥不会发送到网关，网关密钥也不会发送到其他地址。选择模板后，请将 Cheaper Inference 密钥明确贴入「API 密钥」；输入前，「加载模型」「测试连接」和保存都会以缺少密钥的提示停止。重新选择此模板或只修改网关上的路径时，会保留已输入的密钥。模板不保存也不启用任何配置。模板使用现有的 OpenAI Chat Completions 路径，仅由模板单元测试覆盖，未经实际调用验证。
+
 <a id="controlling-token-use"></a>
 
 ## 控制 token 用量

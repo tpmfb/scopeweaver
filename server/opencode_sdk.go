@@ -10,13 +10,6 @@ import (
 	"github.com/Autumn-27/artex/opencodesdk"
 )
 
-// Bridge tokens cannot cross formats or normalized endpoint paths, including SDK-to-SDK edits.
-func sdkCredentialCompatible(cfg agent.Config, storedFormat, storedURL string) bool {
-	if cfg.Provider() != opencodesdk.Format && storedFormat != opencodesdk.Format {
-		return true
-	}
-	return cfg.Provider() == opencodesdk.Format && storedFormat == opencodesdk.Format && opencodesdk.SameEndpoint(cfg.BaseURL, storedURL)
-}
 func (s *Server) listOpenCodeSDKModels(w http.ResponseWriter, r *http.Request, cfg agent.Config) {
 	fail := func(err error) {
 		writeJSON(w, 200, map[string]any{"ok": false, "error": locale.ErrorMessage(responseLanguage(w), err)})
